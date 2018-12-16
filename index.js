@@ -102,7 +102,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		
 		let protocolVersion = dispatch.dispatch.protocolVersion
 		let data2 = protocol.write(protocolVersion, name, '*', packet, undefined, undefined, code)
-		if ((data.length != data2.length) || !data.equals(data2)) {
+		if ((data.length != data2.length) || data !== data2) {
 			return true
 		} else {
 			return false
