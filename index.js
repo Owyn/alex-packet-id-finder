@@ -14,7 +14,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 	let filterExpression = '.*'
 	let filterKnownPackets = true
 	let packetId = null
-	let showCandidateJson = false
+	let showCandidateJson = true
 	
 	function printMainStatus()
 	{
