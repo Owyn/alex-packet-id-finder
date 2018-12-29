@@ -153,6 +153,13 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		 
 		return result
     }
+	
+	function loopBigIntToString(obj) {
+		Object.keys(obj).forEach(key => {
+			if (obj[key] && typeof obj[key] === 'object') loopBigIntToString(obj[key]);
+			else if (typeof obj[key] === "bigint") obj[key] = obj[key].toString();
+		});
+	}
 
     dispatch.hook('*', 'raw', { order: 999, type: 'all' }, (code, data, incoming, fake) => {
 		if (!enabled) return
@@ -178,6 +185,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 				if (showCandidateJson) {
 					for (let candidate of candidates) {
 						let packet = protocol.parse(protocolVersion, candidate, '*', data)
+						loopBigIntToString(packet)
 						console.log(`${code} as ${candidate}:`)
 						let json = JSON.stringify(packet, null, 4)
 						console.log(json)
