@@ -3,7 +3,7 @@ const { protocol } = require('tera-data-parser')
 const path = require('path')
 const fs = require('fs')
 
-protocol.load(require.resolve('tera-data'));
+protocol.load(require.resolve('tera-data'))
 
 module.exports = function AlexPacketIdFinder(dispatch) {
     const command = dispatch.command
@@ -72,7 +72,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		let result = []
 		let basePath = require.resolve('tera-data')
 		if (path.basename(basePath) === 'package.json') {
-			basePath = path.dirname(basePath);
+			basePath = path.dirname(basePath)
 		}
 		let defPath = path.join(basePath, 'protocol')
 		let defFiles = fs.readdirSync(defPath)
@@ -81,7 +81,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 
 			let parsedName = path.basename(file).match(/^(\w+)\.(\d+)\.def$/)
 			if (!parsedName) {
-				continue;
+				continue
 			}
 
 			let name = parsedName[1]
@@ -102,7 +102,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		
 		let protocolVersion = dispatch.dispatch.protocolVersion
 		let data2 = protocol.write(protocolVersion, name, '*', packet, undefined, undefined, code)
-		if ((data.length != data2.length) || data !== data2) {
+		if ((data.length != data2.length) || !data.equals(data2)) { // type Buffer
 			return true
 		} else {
 			return false
@@ -156,9 +156,9 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 	
 	function loopBigIntToString(obj) {
 		Object.keys(obj).forEach(key => {
-			if (obj[key] && typeof obj[key] === 'object') loopBigIntToString(obj[key]);
-			else if (typeof obj[key] === "bigint") obj[key] = obj[key].toString();
-		});
+			if (obj[key] && typeof obj[key] === 'object') loopBigIntToString(obj[key])
+			else if (typeof obj[key] === "bigint") obj[key] = obj[key].toString()
+		})
 	}
 
     dispatch.hook('*', 'raw', { order: 999, type: 'all' }, (code, data, incoming, fake) => {
@@ -185,8 +185,8 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 				if (showCandidateJson) {
 					for (let candidate of candidates) {
 						let packet = protocol.parse(protocolVersion, candidate, '*', data)
-						loopBigIntToString(packet)
 						console.log(`${code} as ${candidate}:`)
+						loopBigIntToString(packet)
 						let json = JSON.stringify(packet, null, 4)
 						console.log(json)
 						command.message(json)
@@ -195,4 +195,4 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 			}
 		}
     })
-};
+}
