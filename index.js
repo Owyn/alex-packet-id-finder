@@ -20,6 +20,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 	{
 		if (enabled) {
 			command.message(`Packet id finder is now enabled (${packetId !== null ? 'only id ' + packetId : 'any id'}, regex /${filterExpression}/i).`)
+			protocol.maps.get(dispatch.dispatch.protocolVersion).name.set(filterExpression, 0)
 		} else {
 			command.message(`Packet id finder is now disabled.`)
 		}
@@ -115,7 +116,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		let re = new RegExp(filterExpression, 'i')
 		for (let name of fullPacketDefList) {
 			let code = protocol.maps.get(dispatch.dispatch.protocolVersion).name.get(name)
-			let known = (code !== undefined && code !== null)
+			let known = (code !== undefined && code !== null && code !== 0)
 			if (known && filterKnownPackets) {
 				//console.log("known " + name)
 				continue
@@ -147,7 +148,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 				if (!defPerhapsWrong) {
 					result.push(name)
 				}
-			} catch(e) {
+			} catch(e) { //console.log(e)
 			}
 		}
 		 
