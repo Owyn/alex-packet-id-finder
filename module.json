@@ -1,11 +1,11 @@
 {
-	"disableAutoUpdate": true,
-	"name": "alex-packet-id-finder",
+	"disableAutoUpdate": false,
+	"name": "Alex Packet-ID finder",
 	"author": "Owyn",
 	"description": "lists opcode candidates after their triggering based on their defenitions",
 	"options": {
 		"niceName": "ID-Finder"
 	},
-	"servers": ["https://github.com/Owyn/alex-packet-id-finder"],
+	"servers": ["https://raw.githubusercontent.com/Owyn/alex-packet-id-finder/master/"],
 	"supportUrl": "https://github.com/Owyn/"
 }
