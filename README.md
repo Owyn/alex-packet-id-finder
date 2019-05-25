@@ -1,5 +1,5 @@
 # alex-packet-id-finder
-lists opcode candidates after their triggering based on their defenitions
+lists opcode candidates after their triggering based on their definitions
 
 ## Usage (proxy command)
 ### `fpi`
