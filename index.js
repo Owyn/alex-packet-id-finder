@@ -1,13 +1,8 @@
-const { protocol } = require('tera-data-parser')
-
 const path = require('path')
 const fs = require('fs')
 
-protocol.load(require.resolve('tera-data'))
-
-module.exports = function AlexPacketIdFinder(dispatch) {
-    const command = dispatch.command
-	
+module.exports = function AlexPacketIdFinder(mod) {
+    const command = mod.command
 	let enabled = false
 	let fullPacketDefList = [...new Set(findPacketDefList())]
 	let filteredPacketDefList = fullPacketDefList
@@ -15,16 +10,24 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 	let filterKnownPackets = true
 	let packetId = null
 	let showCandidateJson = true
-	
+	let rawHook = null
+
 	function printMainStatus()
 	{
 		if (enabled) {
 			command.message(`Packet id finder is now enabled (${packetId !== null ? 'only id ' + packetId : 'any id'}, regex /${filterExpression}/i).`)
-			protocol.maps.get(dispatch.dispatch.protocolVersion).name.set(filterExpression, 0)
 		} else {
 			command.message(`Packet id finder is now disabled.`)
 		}
 	}
+	
+	this.saveState = () => {}
+	this.destructor = () =>
+	{
+		if(enabled) command.exec('fpi')
+		command.remove('fpi')
+	}
+	this.loadState = state => {}
 	
 	command.add('fpi', (arg1, arg2) => {
 		if (arg1 !== undefined) arg1 = ''+arg1
@@ -65,7 +68,12 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 				printMainStatus()
 			}
 		}
-		
+		if(enabled && !rawHook) rawHook = mod.hook('*', 'raw', { order: 999, type: 'all' }, rawHandler)
+		else if(!enabled)
+		{
+			mod.unhook(rawHook)
+			rawHook = null
+		}
 	})
 	
 	function findPacketDefList()
@@ -81,10 +89,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 			let fullpath = path.join(defPath, file)
 
 			let parsedName = path.basename(file).match(/^(\w+)\.(\d+)\.def$/)
-			if (!parsedName) {
-				continue
-			}
-
+			if (!parsedName) continue
 			let name = parsedName[1]
 			result.push(name)
 		}
@@ -92,22 +97,13 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		return result
 	}
 	
-	function isDefPerhapsWrong(name, packet, incoming, data, code) 
+	function isDefPerhapsWrong(name, packet, incoming, data, code)
 	{
-		if (incoming && name.slice(0, 2) === 'C_') {
-			return true
-		}
-		if (!incoming && name.slice(0, 2) === 'S_') {
-			return true
-		}
+		if (incoming && name.slice(0, 2) === 'C_') return true
+		if (!incoming && name.slice(0, 2) === 'S_') return true
 		
-		let protocolVersion = dispatch.dispatch.protocolVersion
-		let data2 = protocol.write(protocolVersion, name, '*', packet, undefined, undefined, code)
-		if ((data.length != data2.length) || !data.equals(data2)) { // type Buffer
-			return true
-		} else {
-			return false
-		}
+		let data2 = mod.dispatch.toRaw(name, '*', packet)
+		return (data.length != data2.length) || !data.equals(data2)
 	}
 	
 	function rebuildFilteredPacketDefList()
@@ -115,14 +111,11 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		filteredPacketDefList = []
 		let re = new RegExp(filterExpression, 'i')
 		for (let name of fullPacketDefList) {
-			let code = protocol.maps.get(dispatch.dispatch.protocolVersion).name.get(name)
+			let code = mod.dispatch.protocolMap.name.get(name)
 			let known = (code !== undefined && code !== null && code !== 0)
-			if (known && filterKnownPackets) {
-				//console.log("known " + name)
-				continue
-			}
-			
-			if (re.test(name)) {	
+			if (known && filterKnownPackets) continue
+			if (re.test(name)) {
+				if(!known) mod.dispatch.protocolMap.name.set(name, 0)
 				//console.log(name)
 				filteredPacketDefList.push(name)
 			}
@@ -134,21 +127,13 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		let result = []
 		
 		for (let name of filteredPacketDefList) {
-			if (incoming && name.slice(0, 2) === 'C_') {
-				continue
-			}
-			if (!incoming && name.slice(0, 2) === 'S_') {
-				continue
-			}
+			if (incoming && name.slice(0, 2) === 'C_') continue
+			if (!incoming && name.slice(0, 2) === 'S_') continue
 			try {
-				let protocolVersion = dispatch.dispatch.protocolVersion
-				let packet = protocol.parse(protocolVersion, name, '*', data)
-				let defPerhapsWrong = isDefPerhapsWrong(name, packet, incoming, data, code)
-				
-				if (!defPerhapsWrong) {
-					result.push(name)
-				}
-			} catch(e) { //console.log(e)
+				let packet = mod.dispatch.fromRaw(name, '*', data)
+				if (!isDefPerhapsWrong(name, packet, incoming, data, code)) result.push(name)
+			} catch(e) {
+				// console.log(e)
 			}
 		}
 		 
@@ -162,16 +147,15 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 		})
 	}
 
-    dispatch.hook('*', 'raw', { order: 999, type: 'all' }, (code, data, incoming, fake) => {
+	function rawHandler(code, data, incoming, fake) {
 		if (!enabled) return
 		if (packetId !== null && code != packetId) return
 		
-		let protocolVersion = dispatch.dispatch.protocolVersion
 		let name = null
 		let packet = null
 		
 		try {
-			name = protocol.maps.get(protocolVersion).code.get(code)
+			name = mod.dispatch.protocolMap.code.get(code)
 		} catch(e) {
 			name = undefined
 		}
@@ -185,7 +169,7 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 				command.message(`Candidates for id ${code}: [${candidates.join(', ')}].`)
 				if (showCandidateJson) {
 					for (let candidate of candidates) {
-						let packet = protocol.parse(protocolVersion, candidate, '*', data)
+						let packet = mod.dispatch.fromRaw(candidate, '*', data)
 						console.log(`${code} as ${candidate}:`)
 						loopBigIntToString(packet)
 						let json = JSON.stringify(packet, null, 4)
@@ -195,5 +179,5 @@ module.exports = function AlexPacketIdFinder(dispatch) {
 				}
 			}
 		}
-    })
-}
+    }
+};
