@@ -103,6 +103,7 @@ module.exports = function AlexPacketIdFinder(mod) {
 		if (!incoming && name.slice(0, 2) === 'S_') return true
 		
 		let data2 = mod.dispatch.toRaw(name, '*', packet)
+		data2.writeUInt16LE(code, 2)
 		return (data.length != data2.length) || !data.equals(data2)
 	}
 	
@@ -112,11 +113,11 @@ module.exports = function AlexPacketIdFinder(mod) {
 		let re = new RegExp(filterExpression, 'i')
 		for (let name of fullPacketDefList) {
 			let code = mod.dispatch.protocolMap.name.get(name)
-			let known = (code !== undefined && code !== null && code !== 0)
+			let known = (code !== undefined && code !== null && code !== 65535)
 			if (known && filterKnownPackets) continue
 			if (re.test(name)) {
-				if(!known) mod.dispatch.protocolMap.name.set(name, 0)
-				//console.log(name)
+				if(!known) mod.dispatch.protocolMap.name.set(name, 65535)
+				// console.log(name)
 				filteredPacketDefList.push(name)
 			}
 		}
