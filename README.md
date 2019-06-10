@@ -1,4 +1,4 @@
-# alex-packet-id-finder (Works only on Pinky Proxy currently, broken on ToolBox)
+# alex-packet-id-finder (Works only on ToolBox currently, Pinky would add compatibility bit later)
 lists opcode candidates after their triggering based on their definitions
 
 ## Usage (proxy command)
