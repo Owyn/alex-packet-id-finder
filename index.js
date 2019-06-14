@@ -1,7 +1,11 @@
+// const path = require('path')
+// const fs = require('fs')
+
 module.exports = function AlexPacketIdFinder(mod) {
     const command = mod.command
 	const FAKE = 65535
 	let enabled = false
+	// let fullPacketDefList = [...new Set(findPacketDefList())]
 	let fullPacketDefList = [...mod.dispatch.protocol.messages.keys()]
 	let filteredPacketDefList = []
 	let filterExpression = '.*'
@@ -69,14 +73,34 @@ module.exports = function AlexPacketIdFinder(mod) {
 			rawHook = null
 		}
 	})
-	
+	/*
+	function findPacketDefList()
+	{
+		let result = []
+		let basePath = require.resolve('tera-data')
+		if (path.basename(basePath) === 'package.json') {
+			basePath = path.dirname(basePath)
+		}
+		let defPath = path.join(basePath, 'protocol')
+		let defFiles = fs.readdirSync(defPath)
+		for (let file of defFiles) {
+			let fullpath = path.join(defPath, file)
+
+			let parsedName = path.basename(file).match(/^(\w+)\.(\d+)\.def$/)
+			if (!parsedName) continue
+			let name = parsedName[1]
+			result.push(name)
+		}
+		
+		return result
+	}
+	*/
 	function isDefPerhapsWrong(name, packet, incoming, data, code)
 	{
 		if (incoming && name.slice(0, 2) === 'C_') return true
 		if (!incoming && name.slice(0, 2) === 'S_') return true
 		
-		let data2 = mod.dispatch.toRaw(name, '*', packet)
-		// let data2 = mod.dispatch.toRaw(name, '*', packet, null, null, code)
+		let data2 = mod.dispatch.toRaw(name, '*', packet, null, null, code)
 		data2.writeUInt16LE(code, 2)
 		return (data.length != data2.length) || !data.equals(data2)
 	}
