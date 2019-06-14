@@ -41,12 +41,8 @@ module.exports = function AlexPacketIdFinder(mod) {
 		} else if (/^\d+$/.test(arg1)) {
 			enabled = true
 			packetId = parseInt(arg1)
-			filterExpression = '.*'
+			if (arg2 !== undefined) filterExpression = arg2
 			rebuildFilteredPacketDefList()
-			
-			if (arg2 !== undefined) {
-				filterExpression = arg2
-			}
 			
 			printMainStatus()
 		} else {
@@ -79,7 +75,9 @@ module.exports = function AlexPacketIdFinder(mod) {
 		if (incoming && name.slice(0, 2) === 'C_') return true
 		if (!incoming && name.slice(0, 2) === 'S_') return true
 		
-		let data2 = mod.dispatch.toRaw(name, '*', packet, null, null, code)
+		let data2 = mod.dispatch.toRaw(name, '*', packet)
+		// let data2 = mod.dispatch.toRaw(name, '*', packet, null, null, code)
+		data2.writeUInt16LE(code, 2)
 		return (data.length != data2.length) || !data.equals(data2)
 	}
 	
