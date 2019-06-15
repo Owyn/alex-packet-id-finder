@@ -135,14 +135,14 @@ module.exports = function AlexPacketIdFinder(mod) {
 			return false;
 		})
     }
-	
+	/*
 	function loopBigIntToString(obj) {
 		Object.keys(obj).forEach(key => {
 			if (obj[key] && typeof obj[key] === 'object') loopBigIntToString(obj[key])
 			else if (typeof obj[key] === "bigint") obj[key] = obj[key].toString()
 		})
 	}
-
+	*/
 	function rawHandler(code, data, incoming, fake) {
 		if (!enabled) return;
 		if (packetId !== null && code != packetId) return;
@@ -151,12 +151,11 @@ module.exports = function AlexPacketIdFinder(mod) {
 		if (!candidates.length) return;
 		console.log(`Candidates for id ${code}: [${candidates.join(', ')}].`)
 		command.message(`Candidates for id ${code}: [${candidates.join(', ')}].`)
-		if (!showCandidateJson) return;
-		candidates.forEach(candidate => {
+		if(showCandidateJson) candidates.forEach(candidate => {
 			let packet = mod.dispatch.fromRaw(candidate, '*', data)
 			console.log(`${code} as ${candidate}:`)
-			loopBigIntToString(packet)
-			let json = JSON.stringify(packet, null, 4)
+			// loopBigIntToString(packet)
+			let json = JSON.stringify(packet, (key, value) => typeof value === 'bigint' ? value.toString() : value, 4)
 			console.log(json)
 			command.message(json)
 		})
