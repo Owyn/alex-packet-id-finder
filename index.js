@@ -18,6 +18,7 @@ module.exports = function AlexPacketIdFinder(mod) {
 	{
 		if (enabled) {
 			command.message(`Packet id finder is now enabled (${packetId !== null ? 'only id ' + packetId : 'any id'}, regex /${filterExpression}/i).`)
+			command.message(`Filtered defs count: ${filteredPacketDefList.length}`)
 		} else {
 			command.message(`Packet id finder is now disabled.`)
 		}
@@ -100,7 +101,7 @@ module.exports = function AlexPacketIdFinder(mod) {
 		if (incoming && name.slice(0, 2) === 'C_') return true
 		if (!incoming && name.slice(0, 2) === 'S_') return true
 		
-		let data2 = mod.dispatch.toRaw(name, '*', packet, null, null, code)
+		let data2 = mod.dispatch.toRaw(name, '*', packet)
 		data2.writeUInt16LE(code, 2)
 		return (data.length != data2.length) || !data.equals(data2)
 	}
@@ -155,7 +156,7 @@ module.exports = function AlexPacketIdFinder(mod) {
 			let packet = mod.dispatch.fromRaw(candidate, '*', data)
 			console.log(`${code} as ${candidate}:`)
 			// loopBigIntToString(packet)
-			let json = JSON.stringify(packet, (key, value) => typeof value === 'bigint' ? value.toString() : value, 4)
+			let json = JSON.stringify(packet, (key, value) => typeof value === 'bigint' ? `${value}` : value, 4)
 			console.log(json)
 			command.message(json)
 		})
