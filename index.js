@@ -67,7 +67,7 @@ module.exports = function AlexPacketIdFinder(mod) {
 				printMainStatus()
 			}
 		}
-		if(enabled && !rawHook) rawHook = mod.hook('*', 'raw', { order: 999, type: 'all' }, rawHandler)
+		if(enabled && !rawHook) rawHook = mod.hook('*', 'raw', { order: 999 }, rawHandler)
 		else if(!enabled)
 		{
 			mod.unhook(rawHook)
