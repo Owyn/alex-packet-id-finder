@@ -156,7 +156,7 @@ module.exports = function AlexPacketIdFinder(mod) {
 			let packet = mod.dispatch.fromRaw(candidate, '*', data)
 			console.log(`${code} as ${candidate}:`)
 			// loopBigIntToString(packet)
-			let json = JSON.stringify(packet, (key, value) => typeof value === 'bigint' ? Number(value) : value, 4)
+			let json = JSON.stringify(packet, (key, value) => typeof value === 'bigint' ? `${value}` : value, 4)
 			console.log(json)
 			command.message(json)
 		})
