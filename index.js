@@ -1,11 +1,13 @@
-const path = require('path')
-const fs = require('fs')
+// const path = require('path')
+// const fs = require('fs')
 
 module.exports = function AlexPacketIdFinder(mod) {
     const command = mod.command
+	const FAKE = 65535
 	let enabled = false
-	let fullPacketDefList = [...new Set(findPacketDefList())]
-	let filteredPacketDefList = fullPacketDefList
+	// let fullPacketDefList = [...new Set(findPacketDefList())]
+	let fullPacketDefList = [...mod.dispatch.protocol.messages.keys()]
+	let filteredPacketDefList = []
 	let filterExpression = '.*'
 	let filterKnownPackets = true
 	let packetId = null
@@ -16,6 +18,7 @@ module.exports = function AlexPacketIdFinder(mod) {
 	{
 		if (enabled) {
 			command.message(`Packet id finder is now enabled (${packetId !== null ? 'only id ' + packetId : 'any id'}, regex /${filterExpression}/i).`)
+			command.message(`Filtered defs count: ${filteredPacketDefList.length}`)
 		} else {
 			command.message(`Packet id finder is now disabled.`)
 		}
@@ -43,12 +46,8 @@ module.exports = function AlexPacketIdFinder(mod) {
 		} else if (/^\d+$/.test(arg1)) {
 			enabled = true
 			packetId = parseInt(arg1)
-			filterExpression = '.*'
+			if (arg2 !== undefined) filterExpression = arg2
 			rebuildFilteredPacketDefList()
-			
-			if (arg2 !== undefined) {
-				filterExpression = arg2
-			}
 			
 			printMainStatus()
 		} else {
@@ -68,14 +67,14 @@ module.exports = function AlexPacketIdFinder(mod) {
 				printMainStatus()
 			}
 		}
-		if(enabled && !rawHook) rawHook = mod.hook('*', 'raw', { order: 999, type: 'all' }, rawHandler)
+		if(enabled && !rawHook) rawHook = mod.hook('*', 'raw', { order: 999 }, rawHandler)
 		else if(!enabled)
 		{
 			mod.unhook(rawHook)
 			rawHook = null
 		}
 	})
-	
+	/*
 	function findPacketDefList()
 	{
 		let result = []
@@ -96,7 +95,7 @@ module.exports = function AlexPacketIdFinder(mod) {
 		
 		return result
 	}
-	
+	*/
 	function isDefPerhapsWrong(name, packet, incoming, data, code)
 	{
 		if (incoming && name.slice(0, 2) === 'C_') return true
@@ -109,76 +108,57 @@ module.exports = function AlexPacketIdFinder(mod) {
 	
 	function rebuildFilteredPacketDefList()
 	{
-		filteredPacketDefList = []
+		filteredPacketDefList.length = 0
 		let re = new RegExp(filterExpression, 'i')
-		for (let name of fullPacketDefList) {
+		fullPacketDefList.forEach(name => {
 			let code = mod.dispatch.protocolMap.name.get(name)
-			let known = (code !== undefined && code !== null && code !== 65535)
-			if (known && filterKnownPackets) continue
+			let known = (code !== undefined && code !== null && code !== FAKE)
+			if (known && filterKnownPackets) return;
 			if (re.test(name)) {
-				if(!known) mod.dispatch.protocolMap.name.set(name, 65535)
-				// console.log(name)
+				if(!known) mod.dispatch.protocolMap.name.set(name, FAKE)
 				filteredPacketDefList.push(name)
+				// console.log(name)
 			}
-		}
+		})
 	}
 	
 	function findPacketIds(code, data, incoming, fake)
 	{
-		let result = []
-		
-		for (let name of filteredPacketDefList) {
-			if (incoming && name.slice(0, 2) === 'C_') continue
-			if (!incoming && name.slice(0, 2) === 'S_') continue
+		return filteredPacketDefList.filter(name => {
+			if (incoming && name.slice(0, 2) === 'C_') return false;
+			if (!incoming && name.slice(0, 2) === 'S_') return false;
 			try {
 				let packet = mod.dispatch.fromRaw(name, '*', data)
-				if (!isDefPerhapsWrong(name, packet, incoming, data, code)) result.push(name)
+				if (!isDefPerhapsWrong(name, packet, incoming, data, code)) return true;
 			} catch(e) {
 				// console.log(e)
 			}
-		}
-		 
-		return result
+			return false;
+		})
     }
-	
+	/*
 	function loopBigIntToString(obj) {
 		Object.keys(obj).forEach(key => {
 			if (obj[key] && typeof obj[key] === 'object') loopBigIntToString(obj[key])
 			else if (typeof obj[key] === "bigint") obj[key] = obj[key].toString()
 		})
 	}
-
+	*/
 	function rawHandler(code, data, incoming, fake) {
-		if (!enabled) return
-		if (packetId !== null && code != packetId) return
-		
-		let name = null
-		let packet = null
-		
-		try {
-			name = mod.dispatch.protocolMap.code.get(code)
-		} catch(e) {
-			name = undefined
-		}
-		
-		let known = (name !== undefined && name !== null)
-		
-		if (!known || !filterKnownPackets) {
-			let candidates = findPacketIds(code, data, incoming, fake)
-			if (candidates.length > 0) {
-				console.log(`Candidates for id ${code}: [${candidates.join(', ')}].`)
-				command.message(`Candidates for id ${code}: [${candidates.join(', ')}].`)
-				if (showCandidateJson) {
-					for (let candidate of candidates) {
-						let packet = mod.dispatch.fromRaw(candidate, '*', data)
-						console.log(`${code} as ${candidate}:`)
-						loopBigIntToString(packet)
-						let json = JSON.stringify(packet, null, 4)
-						console.log(json)
-						command.message(json)
-					}
-				}
-			}
-		}
+		if (!enabled) return;
+		if (packetId !== null && code != packetId) return;
+		if (mod.dispatch.protocolMap.code.get(code) && filterKnownPackets) return;
+		let candidates = findPacketIds(code, data, incoming, fake)
+		if (!candidates.length) return;
+		console.log(`Candidates for id ${code}: [${candidates.join(', ')}].`)
+		command.message(`Candidates for id ${code}: [${candidates.join(', ')}].`)
+		if(showCandidateJson) candidates.forEach(candidate => {
+			let packet = mod.dispatch.fromRaw(candidate, '*', data)
+			console.log(`${code} as ${candidate}:`)
+			// loopBigIntToString(packet)
+			let json = JSON.stringify(packet, (key, value) => typeof value === 'bigint' ? `${value}` : value, 4)
+			console.log(json)
+			command.message(json)
+		})
     }
 };
