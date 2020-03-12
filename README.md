@@ -1,5 +1,6 @@
-# alex-packet-id-finder (supposed to work on Pinky's proxy, Toolbox awaiting fix (feel free to pull request))
-lists opcode candidates after their triggering based on their definitions
+# alex-packet-id-finder
+
+lists opcode candidates after their triggering based on their definitions (that means you must have **correct** .def file for it)
 
 ## Usage (proxy command)
 ### `fpi`
